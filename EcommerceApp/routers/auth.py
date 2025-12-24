@@ -76,7 +76,7 @@ async def get_current_user(token:Annotated[str,Depends(oauth2_bearer)]):
 
 
 @router.post("/",status_code=status.HTTP_201_CREATED)
-async def create_user(db:db_dependency,create_user_request:CreateUserRequest):
+async def sign_up(db:db_dependency,create_user_request:CreateUserRequest):
     create_user_model=Users(
         username=create_user_request.username,
         email=create_user_request.email,
