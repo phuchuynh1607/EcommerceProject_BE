@@ -2,32 +2,27 @@ from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel,Field
 from ..models import Users
 from sqlalchemy.orm import Session
-from ..database import SessionLocal
 from typing import Annotated
 from starlette import status
-from .auth import get_current_user, db_dependency, bcrypt_context
-from passlib.context import CryptContext
+from .auth import get_current_user, bcrypt_context,UserResponse,get_db
 
 router = APIRouter(prefix='/users',tags=['users'])
 
-def get_db():
-    db=SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 db_dependency=Annotated[Session,Depends(get_db)]
-user_dependency=Annotated[Session,Depends(get_current_user)]
-bcrypt_context=CryptContext(schemes=['bcrypt'],deprecated='auto')
+user_dependency=Annotated[dict,Depends(get_current_user)]
+
 
 class UserVerification(BaseModel):
     password:str
     new_password:str=Field(min_length=6)
 
+class UserUpdateRequest(BaseModel):
+    first_name:str=Field(min_length=1)
+    last_name:str=Field(min_length=1)
+    phone_number:str=Field(min_length=5)
 
-@router.get("/",status_code=status.HTTP_200_OK)
+@router.get("/",status_code=status.HTTP_200_OK,response_model=UserResponse)
 async def get_user_information(user:user_dependency,db:db_dependency):
     if user is None:
         raise HTTPException(status_code=401,detail='Authentication Failed')
@@ -45,11 +40,20 @@ async def change_password(user:user_dependency,db:db_dependency,user_verificatio
     db.add(user_model)
     db.commit()
 
-@router.put("/phonenumber/{phone_number}",status_code=status.HTTP_204_NO_CONTENT)
-async def change_phone_number(user:user_dependency,db:db_dependency,phone_number:str):
+
+@router.put("/change_information",status_code=status.HTTP_200_OK,response_model=UserResponse)
+async def change_user_information(user:user_dependency
+                                  ,db:db_dependency
+                                  ,user_request:UserUpdateRequest):
     if user is None:
         raise HTTPException(status_code=401,detail='Authentication Failed')
     user_model=db.query(Users).filter(Users.id == user.get('id')).first()
-    user_model.phone_number = phone_number
+
+    user_model.first_name = user_request.first_name
+    user_model.last_name = user_request.last_name
+    user_model.phone_number = user_request.phone_number
+
     db.add(user_model)
     db.commit()
+    db.refresh(user_model)
+    return user_model

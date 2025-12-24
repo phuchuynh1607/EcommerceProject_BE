@@ -34,6 +34,20 @@ class CreateUserRequest(BaseModel):
     role:str
     phone_number:str
 
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    first_name: str
+    last_name: str
+    role: str
+    phone_number: str
+
+    class Config:
+        from_attributes = True
+
+
+
 class Token(BaseModel):
     access_token:str
     token_type:str
@@ -75,7 +89,7 @@ async def get_current_user(token:Annotated[str,Depends(oauth2_bearer)]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')
 
 
-@router.post("/",status_code=status.HTTP_201_CREATED)
+@router.post("/",status_code=status.HTTP_201_CREATED,response_model=UserResponse)
 async def sign_up(db:db_dependency,create_user_request:CreateUserRequest):
     create_user_model=Users(
         username=create_user_request.username,
@@ -89,6 +103,8 @@ async def sign_up(db:db_dependency,create_user_request:CreateUserRequest):
     )
     db.add(create_user_model)
     db.commit()
+    db.refresh(create_user_model)
+    return create_user_model
 
 @router.post("/token",response_model=Token)
 async def login(form_data:Annotated[OAuth2PasswordRequestForm,Depends()],db:db_dependency):
