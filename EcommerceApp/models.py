@@ -1,6 +1,6 @@
 from .database import  Base
 from sqlalchemy import Boolean,Column, Integer, String, ForeignKey,Float
-
+from sqlalchemy.orm import relationship
 
 class Users(Base):
     __tablename__='users'
@@ -33,6 +33,8 @@ class Carts(Base):
     user_id = Column(Integer,ForeignKey("users.id"))
     product_id = Column(Integer,ForeignKey("products.id"))
     quantity=Column(Integer,default =1)
+
+    product=relationship("Products")
 
 class Orders(Base):
     __tablename__='orders'

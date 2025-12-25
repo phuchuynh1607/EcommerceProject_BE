@@ -59,7 +59,6 @@ def get_db():
     finally:
         db.close()
 
-db_dependency=Annotated[Session,Depends(get_db)]
 
 def authenticate_user(username:str,password:str,db):
     user=db.query(Users).filter(Users.username == username).first()
@@ -87,6 +86,9 @@ async def get_current_user(token:Annotated[str,Depends(oauth2_bearer)]):
         return {'username':username,'id':user_id,'user_role':user_role}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')
+
+db_dependency=Annotated[Session,Depends(get_db)]
+user_dependency=Annotated[dict,Depends(get_current_user)]
 
 
 @router.post("/",status_code=status.HTTP_201_CREATED,response_model=UserResponse)

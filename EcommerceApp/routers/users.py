@@ -1,16 +1,13 @@
 from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel,Field
 from ..models import Users
-from sqlalchemy.orm import Session
-from typing import Annotated
 from starlette import status
-from .auth import get_current_user, bcrypt_context,UserResponse,get_db
+from .auth import user_dependency,db_dependency, bcrypt_context,UserResponse,get_db
 
 router = APIRouter(prefix='/users',tags=['users'])
 
 
-db_dependency=Annotated[Session,Depends(get_db)]
-user_dependency=Annotated[dict,Depends(get_current_user)]
+
 
 
 class UserVerification(BaseModel):

@@ -1,17 +1,12 @@
-from fastapi import APIRouter,Depends,HTTPException,Path
+from fastapi import APIRouter,HTTPException,Path
 from ..models import Users
-from sqlalchemy.orm import Session
-from typing import Annotated
 from starlette import status
-from .auth import get_current_user,UserResponse,get_db
+from .auth import user_dependency,db_dependency,UserResponse
 
 
 router=APIRouter(prefix='/admin',
     tags=['admin'])
 
-
-db_dependency=Annotated[Session,Depends(get_db)]
-user_dependency=Annotated[dict,Depends(get_current_user)]
 
 
 @router.get("/users/",status_code=status.HTTP_200_OK,response_model=list[UserResponse])

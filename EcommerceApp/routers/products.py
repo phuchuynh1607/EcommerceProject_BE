@@ -1,23 +1,11 @@
-from fastapi import APIRouter,Depends,HTTPException,Path
+from fastapi import APIRouter,HTTPException,Path
 from pydantic import BaseModel,Field
 from ..models import Products
-from sqlalchemy.orm import Session
-from ..database import SessionLocal
-from typing import Annotated
 from starlette import status
-from .auth import get_current_user
+from .auth import user_dependency,db_dependency
 
 router=APIRouter(prefix='/products',tags=['products'])
 
-def get_db():
-    db=SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-db_dependency=Annotated[Session,Depends(get_db)]
-user_dependency=Annotated[dict,Depends(get_current_user)]
 
 class ProductRequest(BaseModel):
     title:str=Field(min_length=4)
@@ -29,7 +17,7 @@ class ProductRequest(BaseModel):
 async def read_all_products(db:db_dependency):
     return db.query(Products).all()
 
-@router.get("/product/{product_id}")
+@router.get("/product/{product_id}",status_code=status.HTTP_200_OK)
 async def read_product(db:db_dependency,product_id:int =Path(gt=0)):
     product=db.query(Products).filter(Products.id == product_id).first()
     if product is None:
