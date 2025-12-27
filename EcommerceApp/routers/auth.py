@@ -3,13 +3,13 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 from ..database import SessionLocal
-from ..models import  Users
+from EcommerceApp.models.users_model import Users
 from typing import Annotated
 from datetime import timedelta,datetime,timezone
 from passlib.context import CryptContext
 from jose import jwt,JWTError
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-
+from ..schemas.users_schema import CreateUserRequest,UserResponse
 router=APIRouter(
     prefix='/auth',
     tags=['auth']
@@ -24,27 +24,6 @@ oauth2_bearer=OAuth2PasswordBearer(tokenUrl='auth/token')
 
 
 
-
-class CreateUserRequest(BaseModel):
-    username:str
-    email:str
-    first_name:str
-    last_name:str
-    password:str
-    role:str
-    phone_number:str
-
-class UserResponse(BaseModel):
-    id: int
-    username: str
-    email: str
-    first_name: str
-    last_name: str
-    role: str
-    phone_number: str
-
-    class Config:
-        from_attributes = True
 
 
 
@@ -109,7 +88,7 @@ async def sign_up(db:db_dependency,create_user_request:CreateUserRequest):
     return create_user_model
 
 @router.post("/token",response_model=Token)
-async def login(form_data:Annotated[OAuth2PasswordRequestForm,Depends()],db:db_dependency):
+async def login_for_access_token(form_data:Annotated[OAuth2PasswordRequestForm,Depends()],db:db_dependency):
     user=authenticate_user(form_data.username,form_data.password,db)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail='Could not validate user.')

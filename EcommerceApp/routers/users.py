@@ -1,23 +1,15 @@
-from fastapi import APIRouter,Depends,HTTPException
-from pydantic import BaseModel,Field
-from ..models import Users
+from fastapi import APIRouter,HTTPException
+from EcommerceApp.models.users_model import Users
 from starlette import status
-from .auth import user_dependency,db_dependency, bcrypt_context,UserResponse,get_db
-
+from .auth import user_dependency,db_dependency, bcrypt_context
+from ..schemas.users_schema import UserVerification,UserUpdateRequest,UserResponse
 router = APIRouter(prefix='/users',tags=['users'])
 
 
 
 
 
-class UserVerification(BaseModel):
-    password:str
-    new_password:str=Field(min_length=6)
 
-class UserUpdateRequest(BaseModel):
-    first_name:str=Field(min_length=1)
-    last_name:str=Field(min_length=1)
-    phone_number:str=Field(min_length=5)
 
 @router.get("/",status_code=status.HTTP_200_OK,response_model=UserResponse)
 async def get_user_information(user:user_dependency,db:db_dependency):

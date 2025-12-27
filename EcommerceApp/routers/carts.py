@@ -1,33 +1,15 @@
 from fastapi import APIRouter,HTTPException,Path
-from pydantic import BaseModel,Field
-from ..models import Carts,Products
+from EcommerceApp.models.products_model import Products
+from EcommerceApp.models.carts_model import Carts
 from .auth import user_dependency,db_dependency
 from starlette import status
+from ..schemas.carts_schema import CartResponse,CartRequest,CartUpdateRequest
 
 
 
 router=APIRouter(prefix='/carts',tags=['carts'])
 
-class CartRequest(BaseModel):
-    product_id:int = Field(gt=0)
-    quantity:int=Field(gt=0)
 
-class  ProductInCart(BaseModel):
-    title:str
-    price:float
-
-class CartResponse(BaseModel):
-    id: int
-    product_id: int
-    quantity: int
-    user_id: int
-    product: ProductInCart
-
-    class Config:
-        from_attributes = True
-
-class CartUpdateRequest(BaseModel):
-    quantity:int=Field(gt=0)
 
 @router.get("/admin/all",status_code=status.HTTP_200_OK,response_model=list[CartResponse])
 async def get_all_carts_admin(user:user_dependency,db:db_dependency):

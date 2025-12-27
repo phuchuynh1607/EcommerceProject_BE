@@ -1,7 +1,6 @@
 from fastapi import FastAPI
-from .models import Base
-from .database import engine
-from .routers import auth,admin,users,products,carts,orders
+from EcommerceApp.database import Base,engine
+from EcommerceApp.routers import auth,admin,users,products,carts,orders
 
 app =FastAPI()
 
@@ -16,3 +15,4 @@ app.include_router(admin.router)
 app.include_router(users.router)
 app.include_router(products.router)
 app.include_router(carts.router)
+app.include_router(orders.router)
