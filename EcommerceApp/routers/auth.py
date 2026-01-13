@@ -29,6 +29,7 @@ oauth2_bearer=OAuth2PasswordBearer(tokenUrl='auth/token')
 
 class Token(BaseModel):
     access_token:str
+    refresh_token:str
     token_type:str
 
 def get_db():
@@ -51,8 +52,8 @@ def create_access_token(username:str,user_id:int,role:str,expires_delta:timedelt
     encode ={'sub':username,'id':user_id,'role':role}
     expires=datetime.now(timezone.utc) +expires_delta
     encode.update({'exp':expires})
-    token=jwt.encode(encode,SECRET_KEY,algorithm=ALGORITHM)
-    return token
+    access_token=jwt.encode(encode,SECRET_KEY,algorithm=ALGORITHM)
+    return access_token
 
 async def get_current_user(token:Annotated[str,Depends(oauth2_bearer)]):
     try:
@@ -72,6 +73,9 @@ user_dependency=Annotated[dict,Depends(get_current_user)]
 
 @router.post("/",status_code=status.HTTP_201_CREATED,response_model=UserResponse)
 async def sign_up(db:db_dependency,create_user_request:CreateUserRequest):
+    existing_user=db.query(Users).filter(Users.username == create_user_request.username).first()
+    if existing_user:
+        raise HTTPException(status_code=400,detail='Username already registered! ')
     create_user_model=Users(
         username=create_user_request.username,
         email=create_user_request.email,
@@ -93,5 +97,20 @@ async def login_for_access_token(form_data:Annotated[OAuth2PasswordRequestForm,D
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail='Could not validate user.')
 
-    token =create_access_token(user.username,user.id,user.role,timedelta(minutes=10))
-    return {'access_token':token,'token_type':'bearer'}
+    access_token =create_access_token(user.username,user.id,user.role,timedelta(minutes=10))
+    refresh_token = create_access_token(user.username, user.id, user.role, timedelta(days=7))
+    return {'access_token':access_token,'refresh_token':refresh_token,'token_type':'bearer'}
+
+@router.post("/refresh")
+async def refresh_access_token(refresh_token:str,db:db_dependency):
+    try:
+        payload =jwt.decode(refresh_token,SECRET_KEY,algorithms=[ALGORITHM])
+        username: str = payload.get('sub')
+        user_id: int = payload.get('id')
+        user_role: str = payload.get('role')
+
+        new_access_token=create_access_token(username,user_id,user_role,timedelta(minutes=10))
+        return {'access_token':new_access_token,'token_type':"bearer"}
+    except JWTError:
+        raise HTTPException(status_code=401,detail="Refresh token is invalid or expired.")
+
