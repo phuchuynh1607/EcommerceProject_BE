@@ -1,8 +1,9 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 
-
 class ProductRequest(BaseModel):
-    title:str=Field(min_length=4)
-    description:str=Field(min_length=3,max_length=50)
-    price:float=Field(gt=0)
-    stock:int=Field(gt=-1)
+    title: Optional[str] = Field(default=None, min_length=4)
+    description: Optional[str] = Field(default=None, min_length=3)
+    price: Optional[float] = Field(default=None, gt=0)
+    stock: Optional[int] = Field(default=None, ge=0)
+    image_url: Optional[str] = None
