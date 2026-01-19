@@ -10,12 +10,33 @@ from passlib.context import CryptContext
 from jose import jwt,JWTError
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from ..schemas.users_schema import CreateUserRequest,UserResponse
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Xác định đường dẫn đến thư mục gốc chứa file .env
+# Chạy từ EcommerceApp/routers/auth.py nên cần nhảy lên 2 cấp
+env_path = Path(__file__).resolve().parent.parent.parent / '.env'
+
+# Nạp file .env với đường dẫn cụ thể
+load_dotenv(dotenv_path=env_path)
+
+
+
 router=APIRouter(
     prefix='/auth',
     tags=['auth']
 )
 
-SECRET_KEY='09d25c3f309d43673321528f8045543666f007137f8272f6a62459b139976c6c'
+
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+PEPPER_AUTH = os.getenv("PEPPER_AUTH")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is required")
+
+if not PEPPER_AUTH:
+    raise RuntimeError("PEPPER_AUTH is required")
 ALGORITHM='HS256'
 
 
@@ -39,12 +60,17 @@ def get_db():
     finally:
         db.close()
 
+def hash_password(password: str):
+    return bcrypt_context.hash(password + PEPPER_AUTH)
+
+def verify_password(plain_password: str, hashed_password: str):
+    return bcrypt_context.verify(plain_password + PEPPER_AUTH, hashed_password)
 
 def authenticate_user(username:str,password:str,db):
     user=db.query(Users).filter(Users.username == username).first()
     if not user:
         return False
-    if not bcrypt_context.verify(password,user.hashed_password):
+    if not verify_password(password, user.hashed_password):
         return False
     return user
 
@@ -82,7 +108,7 @@ async def sign_up(db:db_dependency,create_user_request:CreateUserRequest):
         first_name=create_user_request.first_name,
         last_name=create_user_request.last_name,
         role=create_user_request.role,
-        hashed_password=bcrypt_context.hash(create_user_request.password),
+        hashed_password=hash_password(create_user_request.password),
         phone_number=create_user_request.phone_number,
         is_active=True
     )

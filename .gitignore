@@ -1,4 +1,20 @@
+# Môi trường ảo (Virtual Environment)
 .venv/
+venv/
+env/
+
+# Python cache
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Database (SQLite)
 *.db
+*.sqlite3
+
+# IDE (PyCharm, VS Code)
 .idea/
+.vscode/
+
+# File chứa biến môi trường (CỰC KỲ QUAN TRỌNG)
+.env

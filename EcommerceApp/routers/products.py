@@ -5,6 +5,7 @@ from ..schemas.products_schema import ProductRequest
 from EcommerceApp.models.products_model import Products
 from starlette import status
 from .auth import user_dependency,db_dependency
+from typing import List, Optional
 
 router=APIRouter(prefix='/products',tags=['products'])
 
@@ -12,8 +13,13 @@ router=APIRouter(prefix='/products',tags=['products'])
 
 
 @router.get("/",status_code=status.HTTP_200_OK)
-async def read_all_products(db:db_dependency):
-    return db.query(Products).all()
+async def read_all_products(db:db_dependency,category: Optional[str] = None,search: Optional[str] = None):
+    query=db.query(Products)
+    if category:
+        query = query.filter(Products.category.ilike(category))
+    if search:
+        query = query.filter(Products.title.ilike(search))
+    return query.all()
 
 @router.get("/product/{product_id}",status_code=status.HTTP_200_OK)
 async def read_product(db:db_dependency,product_id:int =Path(gt=0)):
@@ -36,6 +42,22 @@ async def create_product(user:user_dependency
     db.refresh(product_model)
     return product_model
 
+
+@router.post("/bulk", status_code=status.HTTP_201_CREATED)
+async def create_multiple_products(
+        db: db_dependency,
+        user: user_dependency,
+        products: List[ProductRequest]
+):
+    if user is None or user.get('user_role') != 'admin':
+        raise HTTPException(status_code=403, detail='You do not have permission to access this.')
+
+
+    product_models = [Products(**product.model_dump()) for product in products]
+
+    db.add_all(product_models)  # Dùng add_all để thêm hàng loạt
+    db.commit()
+    return {"message": f"Successfully added {len(product_models)} products"}
 @router.put("/product/{product_id}",status_code=status.HTTP_200_OK)
 async def update_product(user:user_dependency,
                          db:db_dependency
