@@ -28,14 +28,23 @@ async def read_product(db:db_dependency,product_id:int =Path(gt=0)):
         raise HTTPException(status_code=404,detail="Can't find product!")
     return product
 
-@router.post("/product",status_code=status.HTTP_201_CREATED)
-async def create_product(user:user_dependency
-                         ,db:db_dependency
-                         ,product_request:ProductRequest):
-    if user is None or user.get('user_role') != 'admin':
-        raise HTTPException(status_code=403,detail='You do not have permission to access this.')
 
-    product_model=Products(**product_request.model_dump())
+@router.post("/product", status_code=status.HTTP_201_CREATED)
+async def create_product(user: user_dependency, db: db_dependency, product_request: ProductRequest):
+    if user is None or user.get('user_role') != 'admin':
+        raise HTTPException(status_code=403, detail='You do not have permission to access this.')
+
+    # Trích xuất dữ liệu từ Schema lồng nhau sang Model phẳng
+    product_model = Products(
+        title=product_request.title,
+        price=product_request.price,
+        description=product_request.description,
+        category=product_request.category,
+        image=product_request.image,
+        stock=product_request.stock,
+        rate=product_request.rating.rate,
+        count=product_request.rating.count
+    )
 
     db.add(product_model)
     db.commit()
@@ -44,18 +53,26 @@ async def create_product(user:user_dependency
 
 
 @router.post("/bulk", status_code=status.HTTP_201_CREATED)
-async def create_multiple_products(
-        db: db_dependency,
-        user: user_dependency,
-        products: List[ProductRequest]
-):
+async def create_multiple_products(db: db_dependency, user: user_dependency, products: List[ProductRequest]):
     if user is None or user.get('user_role') != 'admin':
-        raise HTTPException(status_code=403, detail='You do not have permission to access this.')
+        raise HTTPException(status_code=403, detail='Permission denied.')
 
+    product_models = []
+    for p in products:
 
-    product_models = [Products(**product.model_dump()) for product in products]
+        model = Products(
+            title=p.title,
+            price=p.price,
+            description=p.description,
+            category=p.category,
+            image=p.image,
+            stock=p.stock,
+            rate=p.rating.rate,
+            count=p.rating.count
+        )
+        product_models.append(model)
 
-    db.add_all(product_models)  # Dùng add_all để thêm hàng loạt
+    db.add_all(product_models)
     db.commit()
     return {"message": f"Successfully added {len(product_models)} products"}
 @router.put("/product/{product_id}",status_code=status.HTTP_200_OK)
