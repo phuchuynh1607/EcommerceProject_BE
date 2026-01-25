@@ -8,6 +8,7 @@ class CartRequest(BaseModel):
 class  ProductInCart(BaseModel):
     title:str
     price:float
+    image:str | None = None
 
 class CartResponse(BaseModel):
     id: int

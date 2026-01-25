@@ -18,7 +18,7 @@ async def read_all_products(db:db_dependency,category: Optional[str] = None,sear
     if category:
         query = query.filter(Products.category.ilike(category))
     if search:
-        query = query.filter(Products.title.ilike(search))
+        query = query.filter(Products.title.ilike(f"{search}%"))
     return query.all()
 
 @router.get("/product/{product_id}",status_code=status.HTTP_200_OK)
