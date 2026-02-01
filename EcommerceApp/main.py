@@ -2,9 +2,12 @@ from fastapi import FastAPI
 from EcommerceApp.database import Base,engine
 from EcommerceApp.routers import auth,admin,users,products,carts,orders
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
+# Mount thư mục để có thể xem ảnh qua URL
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 origins = [
     "http://localhost:5173",

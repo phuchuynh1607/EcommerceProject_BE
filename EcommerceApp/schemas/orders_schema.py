@@ -4,6 +4,10 @@ from typing import List
 
 class ProductInOrder(BaseModel):
     title:str
+    image: str | None = None  # Thêm dòng này để cho phép trả về ảnh
+
+    class Config:
+        from_attributes = True  # Đảm bảo Pydantic có thể đọc dữ liệu từ model SQLAlchemy
 
 class OrderItemResponse(BaseModel):
     product_id:int=Field(gt=0)

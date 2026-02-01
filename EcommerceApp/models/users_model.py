@@ -15,4 +15,6 @@ class Users(Base):
     role=Column(String)
     phone_number=Column(String)
     is_active = Column(Boolean, default=True)
+    gender = Column(String,nullable=True)
+    user_image=Column(String,nullable=True)
     orders=relationship("Orders",back_populates="user")
