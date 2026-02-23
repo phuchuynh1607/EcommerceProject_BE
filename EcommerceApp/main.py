@@ -1,5 +1,4 @@
 import logging
-
 from fastapi import FastAPI,Request
 from EcommerceApp.database import Base,engine
 from EcommerceApp.routers import auth,admin,users,products,carts,orders
@@ -12,8 +11,6 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-
-# Cấu hình logging cơ bản
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -21,21 +18,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info(f"--- Khởi động hệ thống: {settings.env} ---")
+    logger.info(f"--- System Starting: {settings.env} ---")
 
     try:
-        # Chỉ tự động tạo bảng nếu là môi trường dev
+        # Automatically create tables only in development environment
         if settings.env == "development":
             Base.metadata.create_all(bind=engine)
-            logger.info("Database: Đã kiểm tra và cập nhật cấu hình bảng (Dev Mode)")
+            logger.info("Database: Table configurations checked and updated (Dev Mode)")
         else:
-            logger.info("Database: Bỏ qua tự động tạo bảng (Production Mode)")
+            logger.info("Database: Skipping automatic table creation (Production Mode)")
 
     except Exception as e:
-        logger.error("Database: Lỗi khởi tạo", exc_info=True)
+        logger.error("Database: Initialization failed", exc_info=True)
 
     yield
-    logger.info("--- Hệ thống đóng an toàn ---")
+    logger.info("--- System Shutdown Safely ---")
 
 app = FastAPI(
 title=settings.app_title,
@@ -58,10 +55,10 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,            # Cho phép các nguồn trong danh sách
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],              # Cho phép tất cả các phương thức (GET, POST,...)
-    allow_headers=["*"],              # Cho phép tất cả các headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 app.add_middleware(SlowAPIMiddleware)
 
