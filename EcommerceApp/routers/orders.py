@@ -5,16 +5,18 @@ from EcommerceApp.models.orders_model import Orders,OrderItems
 from starlette import status
 from .auth import user_dependency,db_dependency
 from ..schemas.orders_schema import OrderResponse,UpdateOrderStatus
+from sqlalchemy.orm import joinedload
 
 router=APIRouter(prefix='/orders',tags=['orders'])
 
 @router.post("/checkout",status_code=status.HTTP_201_CREATED)
-async def checkout(user:user_dependency,
+def checkout(user:user_dependency,
                    db:db_dependency):
     if user is None:
         raise HTTPException(status_code=401,detail='Authentication Failed.')
 
-    cart_items=db.query(Carts).filter(Carts.user_id == user.get('id')).all()
+    cart_items = db.query(Carts).options(joinedload(Carts.product)) \
+        .filter(Carts.user_id == user.get('id')).all()
     if not cart_items:
         raise HTTPException(status_code=400,detail='Your Cart is currently empty!')
 
@@ -30,7 +32,7 @@ async def checkout(user:user_dependency,
         total_amount=0
 
         for cart_item in cart_items:
-            product=db.query(Products).filter(Products.id == cart_item.product_id).first()
+            product = cart_item.product  # Đã có sẵn nhờ joinedload, không cần query thêm
             if not product or product.stock < cart_item.quantity:
                 raise HTTPException(status_code=401,detail=f"Product {product.title if product else 'ID'+str(cart_item.product_id)} out of stock.")
 
@@ -58,16 +60,17 @@ async def checkout(user:user_dependency,
 
 
 @router.get("/",status_code=status.HTTP_200_OK,response_model=list[OrderResponse])
-async def checkout_history(user:user_dependency,
+def checkout_history(user:user_dependency,
                            db:db_dependency):
     if user is None:
         raise HTTPException(status_code=401,detail='Authentication Failed.')
 
-    order_model=db.query(Orders)\
+    orders=db.query(Orders)\
+        .options(joinedload(Orders.items))\
         .filter(Orders.user_id == user.get('id'))\
         .order_by(Orders.created_at.desc())\
         .all()
-    return order_model
+    return orders
 
 @router.get("/admin/{order_id}",status_code=status.HTTP_200_OK,response_model=OrderResponse)
 async def admin_checkout(user:user_dependency,

@@ -10,16 +10,25 @@ from typing import List, Optional
 router=APIRouter(prefix='/products',tags=['products'])
 
 
+@router.get("/", status_code=status.HTTP_200_OK)
+def read_all_products(
+        db: db_dependency,
+        category: Optional[str] = None,
+        search: Optional[str] = None,
+        page: int = 1,  # Thêm phân trang
+        size: int = 20  # Mặc định lấy 20 sản phẩm/trang
+):
+    skip = (page - 1) * size
+    query = db.query(Products)
 
-
-@router.get("/",status_code=status.HTTP_200_OK)
-async def read_all_products(db:db_dependency,category: Optional[str] = None,search: Optional[str] = None):
-    query=db.query(Products)
     if category:
         query = query.filter(Products.category.ilike(category))
     if search:
-        query = query.filter(Products.title.ilike(f"{search}%"))
-    return query.all()
+        query = query.filter(Products.title.ilike(f"%{search}%"))
+
+    # Thực hiện phân trang
+    products = query.offset(skip).limit(size).all()
+    return products
 
 @router.get("/product/{product_id}",status_code=status.HTTP_200_OK)
 async def read_product(db:db_dependency,product_id:int =Path(gt=0)):
@@ -30,26 +39,26 @@ async def read_product(db:db_dependency,product_id:int =Path(gt=0)):
 
 
 @router.post("/product", status_code=status.HTTP_201_CREATED)
-async def create_product(user: user_dependency, db: db_dependency, product_request: ProductRequest):
-    if user is None or user.get('user_role') != 'admin':
-        raise HTTPException(status_code=403, detail='You do not have permission to access this.')
+async def create_product(user: user_dependency, db: db_dependency, products: List[ProductRequest]):
+    if not user or user.get('user_role') != 'admin':
+        raise HTTPException(status_code=403, detail='Permission denied.')
 
-    # Trích xuất dữ liệu từ Schema lồng nhau sang Model phẳng
-    product_model = Products(
-        title=product_request.title,
-        price=product_request.price,
-        description=product_request.description,
-        category=product_request.category,
-        image=product_request.image,
-        stock=product_request.stock,
-        rate=product_request.rating.rate,
-        count=product_request.rating.count
-    )
+    product_models = [
+        Products(
+            title=p.title,
+            price=p.price,
+            description=p.description,
+            category=p.category,
+            image=p.image,
+            stock=p.stock,
+            rate=p.rating.rate,
+            count=p.rating.count
+        ) for p in products
+    ]
 
-    db.add(product_model)
+    db.add_all(product_models)
     db.commit()
-    db.refresh(product_model)
-    return product_model
+    return {"message": f"Successfully added {len(product_models)} products"}
 
 
 @router.post("/bulk", status_code=status.HTTP_201_CREATED)
