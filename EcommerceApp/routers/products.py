@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException, Path, Body
-
+import os
+import uuid
+import aiofiles
+from fastapi import APIRouter, HTTPException, Path, Body, UploadFile, File
 from ..models.orders_model import Orders, OrderItems
 from ..schemas.products_schema import ProductRequest
 from EcommerceApp.models.products_model import Products
@@ -9,6 +11,29 @@ from typing import List, Optional
 
 router=APIRouter(prefix='/products',tags=['products'])
 
+PRODUCT_IMAGEDIR = "static/products/"
+os.makedirs(PRODUCT_IMAGEDIR, exist_ok=True)
+
+@router.post("/products/upload", status_code=status.HTTP_201_CREATED)
+async def upload_product_image(user:user_dependency,file: UploadFile = File(...)):
+    if not user or user.get('user_role') != 'admin':
+        raise HTTPException(status_code=403, detail='Permission denied.')
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    ext = file.filename.split(".")[-1]
+    unique_filename = f"prod_{uuid.uuid4()}.{ext}"
+    file_path = os.path.join(PRODUCT_IMAGEDIR, unique_filename)
+
+    try:
+        async with aiofiles.open(file_path, "wb") as f:
+            while chunk := await file.read(1024 * 1024):
+                await f.write(chunk)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
+
+
+    return {"image_url": f"http://127.0.0.1:8000/{file_path}"}
 
 @router.get("/", status_code=status.HTTP_200_OK)
 def read_all_products(
@@ -16,7 +41,7 @@ def read_all_products(
         category: Optional[str] = None,
         search: Optional[str] = None,
         page: int = 1,  # Thêm phân trang
-        size: int = 20  # Mặc định lấy 20 sản phẩm/trang
+        size: int = 50  # Mặc định lấy 20 sản phẩm/trang
 ):
     skip = (page - 1) * size
     query = db.query(Products)
